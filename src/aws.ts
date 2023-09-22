@@ -1,6 +1,7 @@
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 import AWS from 'aws-sdk';
 import dotenv from 'dotenv';
+import { TweetFormatted } from './types/twitter';
 
 dotenv.config();
 
@@ -99,5 +100,39 @@ export const getAllScanResults = async <T>(
       throw e;
     }
     throw new Error('getAllScanResults unexpected error');
+  }
+};
+
+// 4 - Update Tweet field
+export const dynamodbUpdateTweet = async (
+  tableName: string,
+  tweet: TweetFormatted,
+  twitterId: string
+) => {
+  try {
+    const params: AWS.DynamoDB.UpdateItemInput = {
+      TableName: tableName,
+      Key: marshall({ twitterId: twitterId }),
+      UpdateExpression:
+        'set #tweets = list_append(if_not_exists(#tweets, :empty_list), :tweet), #updated = :updated',
+      ExpressionAttributeNames: {
+        '#tweets': 'tweets',
+        '#updated': 'updated',
+      },
+      ExpressionAttributeValues: marshall({
+        ':tweet': [tweet],
+        ':updated': Date.now(),
+        ':empty_list': [],
+      }),
+    };
+
+    const result = await dynamodb.updateItem(params).promise();
+    console.log('Tweet added to record!');
+    return result;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw e;
+    }
+    throw new Error('dynamodbUpdateTweet error object unknown type');
   }
 };
