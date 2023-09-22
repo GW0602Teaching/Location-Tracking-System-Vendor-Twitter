@@ -7,9 +7,11 @@ dotenv.config();
 
 AWS.config.update({ region: process.env.AWS_REGION });
 
-const { DynamoDB } = AWS;
+const { DynamoDB, SQS } = AWS;
 
 const dynamodb = new DynamoDB();
+
+const sqs = new SQS();
 
 // 1 - Describe a table
 export const dynamodbDescribeTable = async (tableName: string) => {
@@ -136,3 +138,22 @@ export const dynamodbUpdateTweet = async (
     throw new Error('dynamodbUpdateTweet error object unknown type');
   }
 };
+
+// 5 - SQS message
+export const sqsSendMessage = async (queueUrl: string, body: string) {
+    try {
+        const params: AWS.SQS.SendMessageRequest = {
+            MessageBody: body,
+            QueueUrl: queueUrl
+        }
+
+        const res = await sqs.sendMessage(params).promise();
+        console.log("Send Message!")
+        return res;
+    } catch (e) {
+        if (e instanceof Error) {
+            throw e;
+          }
+          throw new Error('sqsSendMessage error object unknown type');
+    }
+}
