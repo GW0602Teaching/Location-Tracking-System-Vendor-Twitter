@@ -7,6 +7,8 @@ import {
 } from './aws';
 import dotenv from 'dotenv';
 import { Vendor } from './types/vendor';
+import { Rule } from './types/twitter';
+import { setRules } from './twitter';
 
 dotenv.config();
 
@@ -18,11 +20,6 @@ const init = async () => {
   //   const scanIterator = await dynamodbScanTable(TABLE_NAME_CONST, 5);
   //   console.log((await scanIterator.next()).value);
   //   console.log((await scanIterator.next()).value);
-
-  //   const vendors = await getAllScanResults<Vendor>(
-  //     process.env.AWS_VENDORS_TABLE_NAME ?? ''
-  //   );
-  //   console.log(vendors);
 
   // await dynamodbUpdateTweet(
   //   process.env.AWS_VENDORS_TABLE_NAME ?? '',
@@ -48,10 +45,25 @@ const init = async () => {
   //   'DCTacoTruck'
   // );
 
-  await sqsSendMessage(
-    'https://sqs.us-east-1.amazonaws.com/525480118775/testqueue1',
-    'testMsg1'
+  // await sqsSendMessage(
+  //   'https://sqs.us-east-1.amazonaws.com/525480118775/testqueue1',
+  //   'testMsg1'
+  // );
+
+  const vendors = await getAllScanResults<Vendor>(
+    process.env.AWS_VENDORS_TABLE_NAME ?? ''
   );
+
+  const vendorIdList = vendors.map((item) => item.twitterId);
+
+  const rules: Rule[] = [
+    {
+      value: `has:geo (from:${vendorIdList.join(` OR from:`)})`,
+      tag: 'vendors-geo',
+    },
+  ];
+
+  await setRules(rules);
 };
 
 init();
