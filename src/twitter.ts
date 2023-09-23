@@ -70,3 +70,40 @@ export const getAllRules = async () => {
     throw new Error('getAllRules unexpected error');
   }
 };
+
+// Delete rules
+export const deleteAllRules = async (rules: any) => {
+  try {
+    if (!Array.isArray(rules.data)) {
+      throw new Error('Invalid rules set passed in');
+    }
+
+    const ids = rules.data.map((item: any) => item.id);
+
+    const params = {
+      delete: {
+        ids,
+      },
+    };
+
+    const res = await needle('post', RULES_URL, params, {
+      headers: {
+        authorization: `Bearer ${TOKEN}`,
+        'content-type': 'application/json',
+      },
+    });
+
+    if (res.statusCode !== 200) {
+      throw new Error(
+        `deleteAllRules error response: ${res.statusCode} ${res.statusMessage}`
+      );
+    }
+
+    return res.body;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw e;
+    }
+    throw new Error('deleteAllRules unexpected error');
+  }
+};

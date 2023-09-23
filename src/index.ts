@@ -8,7 +8,7 @@ import {
 import dotenv from 'dotenv';
 import { Vendor } from './types/vendor';
 import { Rule } from './types/twitter';
-import { setRules, getAllRules } from './twitter';
+import { setRules, getAllRules, deleteAllRules } from './twitter';
 
 dotenv.config();
 
@@ -67,6 +67,7 @@ const init = async () => {
 
   const rules = await getAllRules();
   console.log(rules);
+  await deleteAllRules(rules);
 };
 
 init();
