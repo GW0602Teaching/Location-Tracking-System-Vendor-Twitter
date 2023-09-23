@@ -8,7 +8,7 @@ import {
 import dotenv from 'dotenv';
 import { Vendor } from './types/vendor';
 import { Rule } from './types/twitter';
-import { setRules } from './twitter';
+import { setRules, getAllRules } from './twitter';
 
 dotenv.config();
 
@@ -50,20 +50,23 @@ const init = async () => {
   //   'testMsg1'
   // );
 
-  const vendors = await getAllScanResults<Vendor>(
-    process.env.AWS_VENDORS_TABLE_NAME ?? ''
-  );
+  // const vendors = await getAllScanResults<Vendor>(
+  //   process.env.AWS_VENDORS_TABLE_NAME ?? ''
+  // );
 
-  const vendorIdList = vendors.map((item) => item.twitterId);
+  // const vendorIdList = vendors.map((item) => item.twitterId);
 
-  const rules: Rule[] = [
-    {
-      value: `has:geo (from:${vendorIdList.join(` OR from:`)})`,
-      tag: 'vendors-geo',
-    },
-  ];
+  // const rules: Rule[] = [
+  //   {
+  //     value: `has:geo (from:${vendorIdList.join(` OR from:`)})`,
+  //     tag: 'vendors-geo',
+  //   },
+  // ];
 
-  await setRules(rules);
+  // await setRules(rules);
+
+  const rules = await getAllRules();
+  console.log(rules);
 };
 
 init();
