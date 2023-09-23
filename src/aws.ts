@@ -140,20 +140,23 @@ export const dynamodbUpdateTweet = async (
 };
 
 // 5 - SQS message
-export const sqsSendMessage = async (queueUrl: string, body: string) {
-    try {
-        const params: AWS.SQS.SendMessageRequest = {
-            MessageBody: body,
-            QueueUrl: queueUrl
-        }
+export const sqsSendMessage = async (
+  queueUrl: string,
+  body: string
+) => {
+  try {
+    const params: AWS.SQS.SendMessageRequest = {
+      MessageBody: body,
+      QueueUrl: queueUrl,
+    };
 
-        const res = await sqs.sendMessage(params).promise();
-        console.log("Send Message!")
-        return res;
-    } catch (e) {
-        if (e instanceof Error) {
-            throw e;
-          }
-          throw new Error('sqsSendMessage error object unknown type');
+    const res = await sqs.sendMessage(params).promise();
+    console.log('Send Message!');
+    return res;
+  } catch (e) {
+    if (e instanceof Error) {
+      throw e;
     }
-}
+    throw new Error('sqsSendMessage error object unknown type');
+  }
+};
