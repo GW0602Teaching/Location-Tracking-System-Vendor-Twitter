@@ -160,38 +160,3 @@ export const sqsSendMessage = async (
     throw new Error('sqsSendMessage error object unknown type');
   }
 };
-
-// 6 - Parse tweet
-const parseTweet = (stream: TweetStream): TweetFormatted | Error => {
-  try {
-    const user = stream.includes.users[0];
-    const tweet = stream.includes.tweets[0];
-    const place = stream.includes.places[0];
-
-    return {
-      id: tweet.id,
-      userName: user.name,
-      userId: user.username,
-      text: tweet.text,
-      date: tweet.created_at,
-      geo: {
-        id: place.id,
-        name: place.name,
-        full_name: place.full_name,
-        place_type: place.place_type,
-        country: place.country,
-        country_code: place.country_code,
-        coordinates: {
-          long: place.geo.bbox[0],
-          lat: place.geo.bbox[1],
-        },
-      },
-    };
-  } catch (e) {
-    if (e instanceof Error) {
-      throw e;
-    }
-
-    throw new Error('parseTweet unexpected error');
-  }
-};

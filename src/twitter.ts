@@ -1,11 +1,15 @@
 import needle from 'needle';
 import dotenv from 'dotenv';
-import { Rule } from './types/twitter';
+import { Rule, TweetStream } from './types/twitter';
+import { dynamodbUpdateTweet, sqsSendMessage } from './aws';
 
 dotenv.config();
 
 // ENV
 const TOKEN = process.env.TWITTER_API_BEARER_TOKEN ?? '';
+const AWS_VENDORS_TABLE_NAME =
+  process.env.AWS_VENDORS_TABLE_NAME ?? '';
+const AWS_SQS_URL = process.env.AWS_SQS_URL ?? '';
 
 // URLS
 const RULES_URL =
@@ -106,4 +110,117 @@ export const deleteAllRules = async (rules: any) => {
     }
     throw new Error('deleteAllRules unexpected error');
   }
+};
+
+// Parse tweet
+const parseTweet = (stream: TweetStream): TweetFormatted | Error => {
+  try {
+    const user = stream.includes.users[0];
+    const tweet = stream.includes.tweets[0];
+    const place = stream.includes.places[0];
+
+    return {
+      id: tweet.id,
+      userName: user.name,
+      userId: user.username,
+      text: tweet.text,
+      date: tweet.created_at,
+      geo: {
+        id: place.id,
+        name: place.name,
+        full_name: place.full_name,
+        place_type: place.place_type,
+        country: place.country,
+        country_code: place.country_code,
+        coordinates: {
+          long: place.geo.bbox[0],
+          lat: place.geo.bbox[1],
+        },
+      },
+    };
+  } catch (e) {
+    if (e instanceof Error) {
+      return e;
+    }
+
+    throw new Error('parseTweet unexpected error');
+  }
+};
+
+// Connect Stream
+export const connectStream = (retryAttempt: number = 0) => {
+  const stream = needle.get(STREAM_URL, {
+    headers: { authorization: `Bearer ${TOKEN}` },
+    timeout: 20000,
+  });
+
+  stream
+    .on('data', async (data) => {
+      try {
+        const json: TweetStream = JSON.parse(data);
+        const parsedTweet = parseTweet(json);
+        console.log('Tweet', parsedTweet);
+
+        // Error handling first + Post-processing
+        if (parsedTweet instanceof Error) {
+          console.log('parseTweet error: ', parsedTweet.message);
+        } else {
+          // 1 - update the db
+          const updatedTweetRes = await dynamodbUpdateTweet(
+            AWS_VENDORS_TABLE_NAME,
+            parsedTweet,
+            parsedTweet.id
+          );
+
+          if (updatedTweetRes instanceof Error) {
+            console.log(
+              'dynamodbUpdateTweet error: ',
+              updatedTweetRes.message
+            );
+          }
+
+          // 2 - send to SQS
+          const sqsRes = await sqsSendMessage(
+            AWS_SQS_URL,
+            JSON.stringify(parsedTweet)
+          );
+
+          if (sqsRes instanceof Error) {
+            console.log('sqsSendMessage error: ', sqsRes.message);
+          }
+        }
+
+        retryAttempt = 0; // After successfully connected, reset the counter
+      } catch (e) {
+        if (data.status === 401) {
+          console.log('error status 401', data);
+          throw new Error('Error status 401');
+        } else if (
+          data.detail ===
+          'This stream is currently at the maximum allowed connection limit.'
+        ) {
+          console.log('error', data.detail);
+          throw new Error('Stream max limit');
+        } else {
+          // Do nothing, keep alive signal
+        }
+      }
+    })
+    .on('err', (e) => {
+      console.log('error on', e.message);
+      if (e.code !== 'ECONNRESET') {
+        console.log('invalid error code', e.code);
+        throw new Error('Invalid error code');
+      } else {
+        console.log(
+          'Twitter connection failed trying again, attempt: ',
+          retryAttempt
+        );
+        setTimeout(() => {
+          connectStream(++retryAttempt);
+        }, 2 ** retryAttempt); // Exponential Backoff
+      }
+    });
+
+  return stream;
 };
