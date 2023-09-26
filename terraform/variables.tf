@@ -19,7 +19,7 @@ variable "aws_region" {}
 variable "app_name" {
   type        = string
   description = "Application Name"
-  default = "Location-Tracking-System-Vendor-Twitter"
+  default = "Vendor-Twitter"
 }
 
 variable "ecs_twitter_env_secrets_key" {
