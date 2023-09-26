@@ -16,4 +16,4 @@ CMD [ "npm", "start" ]
 
 EXPOSE 80
 
-HEALTHCHECK --interval=10s --timeout= \ CMD curl -f http://localhost:80/ || exit
+HEALTHCHECK --interval=10s --timeout= \ CMD curl -f http://localhost:80/ || exit 1
