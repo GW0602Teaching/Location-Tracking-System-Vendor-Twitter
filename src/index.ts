@@ -14,6 +14,8 @@ import {
   deleteAllRules,
   streamVendors,
 } from './twitter';
+import express from 'express';
+import healthCheck from './healthCheck';
 
 dotenv.config();
 
@@ -74,13 +76,31 @@ const init = async () => {
   // console.log(rules);
   // await deleteAllRules(rules);
 
-  const vendors = await getAllScanResults<Vendor>(
-    process.env.AWS_VENDORS_TABLE_NAME ?? ''
-  );
+  try {
+    // const vendors = await getAllScanResults<Vendor>(
+    //   process.env.AWS_VENDORS_TABLE_NAME ?? ''
+    // );
 
-  const vendorList = vendors.map((vendor) => vendor.twitterId);
+    // const vendorList = vendors.map((vendor) => vendor.twitterId);
 
-  await streamVendors(vendorList);
+    // await streamVendors(vendorList);
+
+    const app = express();
+    app.use('/', healthCheck);
+    app.listen(process.env.PORT, () =>
+      console.log(
+        `Health Check listening on port ${process.env.PORT}`
+      )
+    );
+  } catch (e) {
+    if (e instanceof Error) {
+      console.log(e.message);
+      process.exit(1);
+    }
+
+    console.log('init unexpected error');
+    process.exit(1);
+  }
 };
 
 init();
