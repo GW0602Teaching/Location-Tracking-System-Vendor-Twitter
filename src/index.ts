@@ -8,7 +8,12 @@ import {
 import dotenv from 'dotenv';
 import { Vendor } from './types/vendor';
 import { Rule } from './types/twitter';
-import { setRules, getAllRules, deleteAllRules } from './twitter';
+import {
+  setRules,
+  getAllRules,
+  deleteAllRules,
+  streamVendors,
+} from './twitter';
 
 dotenv.config();
 
@@ -65,9 +70,17 @@ const init = async () => {
 
   // await setRules(rules);
 
-  const rules = await getAllRules();
-  console.log(rules);
-  await deleteAllRules(rules);
+  // const rules = await getAllRules();
+  // console.log(rules);
+  // await deleteAllRules(rules);
+
+  const vendors = await getAllScanResults<Vendor>(
+    process.env.AWS_VENDORS_TABLE_NAME ?? ''
+  );
+
+  const vendorList = vendors.map((vendor) => vendor.twitterId);
+
+  await streamVendors(vendorList);
 };
 
 init();
